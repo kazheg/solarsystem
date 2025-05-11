@@ -1,0 +1,1157 @@
+
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Khám Phá Hệ Mặt Trời 3D</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.132.2/build/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.132.2/examples/js/controls/OrbitControls.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap');
+        
+        body {
+            margin: 0;
+            overflow: hidden;
+            font-family: 'Space Grotesk', sans-serif;
+            color: white;
+            background-color: #000;
+        }
+        
+        canvas {
+            display: block;
+        }
+        
+        .planet-info {
+            background-color: rgba(0, 0, 0, 0.7);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 10px;
+            backdrop-filter: blur(10px);
+            transition: all 0.3s ease;
+        }
+        
+        .planet-info:hover {
+            background-color: rgba(0, 0, 0, 0.8);
+            border: 1px solid rgba(255, 255, 255, 0.4);
+        }
+        
+        .control-btn {
+            transition: all 0.2s ease;
+        }
+        
+        .control-btn:hover {
+            background-color: rgba(255, 255, 255, 0.2);
+            transform: scale(1.05);
+        }
+        
+        .tab-btn {
+            transition: all 0.2s ease;
+        }
+        
+        .tab-btn.active {
+            background-color: rgba(59, 130, 246, 0.7);
+            color: white;
+        }
+        
+        .tab-btn:hover:not(.active) {
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+        
+        .slider {
+            -webkit-appearance: none;
+            height: 5px;
+            border-radius: 5px;
+            background: #444;
+            outline: none;
+        }
+        
+        .slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 15px;
+            height: 15px;
+            border-radius: 50%;
+            background: #3b82f6;
+            cursor: pointer;
+        }
+        
+        .slider::-moz-range-thumb {
+            width: 15px;
+            height: 15px;
+            border-radius: 50%;
+            background: #3b82f6;
+            cursor: pointer;
+        }
+        
+        .challenge-card {
+            background-color: rgba(30, 41, 59, 0.7);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            transition: all 0.3s ease;
+        }
+        
+        .challenge-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px -5px rgba(59, 130, 246, 0.3);
+            border-color: rgba(59, 130, 246, 0.5);
+        }
+        
+        /* Tooltip styles */
+        .tooltip {
+            position: relative;
+            display: inline-block;
+        }
+        
+        .tooltip .tooltiptext {
+            visibility: hidden;
+            width: 200px;
+            background-color: rgba(15, 23, 42, 0.9);
+            color: #fff;
+            text-align: center;
+            border-radius: 6px;
+            padding: 8px;
+            position: absolute;
+            z-index: 1;
+            bottom: 125%;
+            left: 50%;
+            margin-left: -100px;
+            opacity: 0;
+            transition: opacity 0.3s;
+            font-size: 0.8rem;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .tooltip:hover .tooltiptext {
+            visibility: visible;
+            opacity: 1;
+        }
+    </style>
+</head>
+<body>
+    <div id="canvas-container" class="fixed top-0 left-0 w-full h-full"></div>
+    
+    <!-- UI Overlay -->
+    <div class="fixed top-0 left-0 w-full h-full pointer-events-none">
+        <!-- Top Navigation -->
+        <div class="pointer-events-auto flex justify-between items-center p-4 w-full">
+            <div class="text-2xl font-bold text-white flex items-center">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 mr-2 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 10a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1v-4z" />
+                </svg>
+                Khám Phá Hệ Mặt Trời 3D
+            </div>
+            
+            <div class="flex space-x-2">
+                <button id="reset-view" class="control-btn bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clip-rule="evenodd" />
+                    </svg>
+                    Đặt lại góc nhìn
+                </button>
+                <button id="toggle-info" class="control-btn bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg flex items-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2h2a1 1 0 100-2H9z" clip-rule="evenodd" />
+                    </svg>
+                    Thông tin
+                </button>
+                <button id="toggle-challenges" class="control-btn bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg flex items-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1" viewBox="0 0 20 20" fill="currentColor">
+                        <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                    </svg>
+                    Thử thách
+                </button>
+            </div>
+        </div>
+        
+        <!-- Planet Selection -->
+        <div class="pointer-events-auto absolute bottom-4 left-1/2 transform -translate-x-1/2 bg-gray-900 bg-opacity-70 rounded-full px-4 py-2 flex space-x-2 border border-gray-700">
+            <button class="planet-btn active" data-planet="mercury">Sao Thủy</button>
+            <button class="planet-btn" data-planet="venus">Sao Kim</button>
+            <button class="planet-btn" data-planet="earth">Trái Đất</button>
+            <button class="planet-btn" data-planet="mars">Sao Hỏa</button>
+            <button class="planet-btn" data-planet="jupiter">Sao Mộc</button>
+            <button class="planet-btn" data-planet="saturn">Sao Thổ</button>
+            <button class="planet-btn" data-planet="uranus">Sao Thiên Vương</button>
+            <button class="planet-btn" data-planet="neptune">Sao Hải Vương</button>
+        </div>
+        
+        <!-- Simulation Controls -->
+        <div class="pointer-events-auto absolute bottom-20 left-4 bg-gray-900 bg-opacity-70 p-4 rounded-lg border border-gray-700">
+            <div class="mb-4">
+                <label class="block text-sm font-medium mb-1">Tốc độ mô phỏng</label>
+                <input type="range" id="simulation-speed" class="slider w-full" min="0" max="10" value="1" step="0.1">
+                <div class="flex justify-between text-xs mt-1">
+                    <span>Chậm</span>
+                    <span>Nhanh</span>
+                </div>
+            </div>
+            
+            <div class="mb-4">
+                <label class="block text-sm font-medium mb-1">Tỷ lệ kích thước</label>
+                <input type="range" id="size-scale" class="slider w-full" min="1" max="25" value="5" step="1">
+                <div class="flex justify-between text-xs mt-1">
+                    <span>Thực tế</span>
+                    <span>Phóng đại</span>
+                </div>
+            </div>
+            
+            <div class="mb-4">
+                <label class="block text-sm font-medium mb-1">Tỷ lệ khoảng cách</label>
+                <input type="range" id="distance-scale" class="slider w-full" min="0.1" max="1" value="0.3" step="0.05">
+                <div class="flex justify-between text-xs mt-1">
+                    <span>Gần</span>
+                    <span>Xa</span>
+                </div>
+            </div>
+            
+            <div class="flex space-x-2">
+                <button id="toggle-orbits" class="control-btn bg-gray-700 hover:bg-gray-600 text-white px-3 py-1 rounded text-sm flex items-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v2H7a1 1 0 100 2h2v2a1 1 0 102 0v-2h2a1 1 0 100-2h-2V7z" clip-rule="evenodd" />
+                    </svg>
+                    Quỹ đạo
+                </button>
+                <button id="toggle-labels" class="control-btn bg-gray-700 hover:bg-gray-600 text-white px-3 py-1 rounded text-sm flex items-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M17.707 9.293a1 1 0 010 1.414l-7 7a1 1 0 01-1.414 0l-7-7A.997.997 0 012 10V5a3 3 0 013-3h5c.256 0 .512.098.707.293l7 7zM5 6a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd" />
+                    </svg>
+                    Nhãn
+                </button>
+            </div>
+        </div>
+        
+        <!-- Planet Info Panel -->
+        <div id="planet-info" class="pointer-events-auto absolute top-20 right-4 w-80 planet-info p-5 hidden">
+            <div class="flex justify-between items-center mb-4">
+                <h2 id="planet-name" class="text-xl font-bold">Trái Đất</h2>
+                <button id="close-info" class="text-gray-400 hover:text-white">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" />
+                    </svg>
+                </button>
+            </div>
+            
+            <div class="flex space-x-2 mb-4">
+                <button class="tab-btn active px-3 py-1 rounded text-sm" data-tab="basic">Cơ bản</button>
+                <button class="tab-btn px-3 py-1 rounded text-sm" data-tab="physics">Vật lý</button>
+                <button class="tab-btn px-3 py-1 rounded text-sm" data-tab="orbit">Quỹ đạo</button>
+            </div>
+            
+            <div id="basic-tab" class="tab-content">
+                <div class="grid grid-cols-2 gap-2 mb-4">
+                    <div class="bg-gray-800 bg-opacity-50 p-2 rounded">
+                        <div class="text-xs text-gray-400">Đường kính</div>
+                        <div id="planet-diameter" class="font-medium">12,742 km</div>
+                    </div>
+                    <div class="bg-gray-800 bg-opacity-50 p-2 rounded">
+                        <div class="text-xs text-gray-400">So với Trái Đất</div>
+                        <div id="planet-size-ratio" class="font-medium">1.0x</div>
+                    </div>
+                    <div class="bg-gray-800 bg-opacity-50 p-2 rounded">
+                        <div class="text-xs text-gray-400">Nhiệt độ trung bình</div>
+                        <div id="planet-temp" class="font-medium">15°C</div>
+                    </div>
+                    <div class="bg-gray-800 bg-opacity-50 p-2 rounded">
+                        <div class="text-xs text-gray-400">Chu kỳ tự quay</div>
+                        <div id="planet-day" class="font-medium">24 giờ</div>
+                    </div>
+                </div>
+                <p id="planet-description" class="text-sm text-gray-300">Trái Đất là hành tinh thứ ba tính từ Mặt Trời, là hành tinh lớn nhất trong số các hành tinh đất đá trong Hệ Mặt Trời về cả khối lượng và đường kính. Trái Đất còn được gọi là "Hành tinh xanh" vì có sự hiện diện của nước và sự sống.</p>
+            </div>
+            
+            <div id="physics-tab" class="tab-content hidden">
+                <div class="grid grid-cols-2 gap-2 mb-4">
+                    <div class="bg-gray-800 bg-opacity-50 p-2 rounded">
+                        <div class="text-xs text-gray-400">Khối lượng</div>
+                        <div id="planet-mass" class="font-medium">5.97 × 10^24 kg</div>
+                    </div>
+                    <div class="bg-gray-800 bg-opacity-50 p-2 rounded">
+                        <div class="text-xs text-gray-400">So với Trái Đất</div>
+                        <div id="planet-mass-ratio" class="font-medium">1.0x</div>
+                    </div>
+                    <div class="bg-gray-800 bg-opacity-50 p-2 rounded tooltip">
+                        <div class="text-xs text-gray-400">Trọng lực bề mặt</div>
+                        <div id="planet-gravity" class="font-medium">9.8 m/s²</div>
+                        <span class="tooltiptext">Lực hấp dẫn trên bề mặt hành tinh</span>
+                    </div>
+                    <div class="bg-gray-800 bg-opacity-50 p-2 rounded tooltip">
+                        <div class="text-xs text-gray-400">Vận tốc thoát</div>
+                        <div id="planet-escape" class="font-medium">11.2 km/s</div>
+                        <span class="tooltiptext">Vận tốc tối thiểu cần thiết để thoát khỏi lực hấp dẫn</span>
+                    </div>
+                </div>
+                <div class="bg-blue-900 bg-opacity-30 p-3 rounded border border-blue-800">
+                    <h3 class="text-sm font-medium mb-2 text-blue-300">Bạn có biết?</h3>
+                    <p id="planet-fact" class="text-xs text-gray-300">Nếu bạn nặng 50kg trên Trái Đất, bạn sẽ chỉ nặng khoảng 19kg trên Sao Hỏa do trọng lực thấp hơn.</p>
+                </div>
+            </div>
+            
+            <div id="orbit-tab" class="tab-content hidden">
+                <div class="grid grid-cols-2 gap-2 mb-4">
+                    <div class="bg-gray-800 bg-opacity-50 p-2 rounded">
+                        <div class="text-xs text-gray-400">Khoảng cách TB đến Mặt Trời</div>
+                        <div id="planet-distance" class="font-medium">149.6 triệu km</div>
+                    </div>
+                    <div class="bg-gray-800 bg-opacity-50 p-2 rounded">
+                        <div class="text-xs text-gray-400">Chu kỳ quỹ đạo</div>
+                        <div id="planet-year" class="font-medium">365.25 ngày</div>
+                    </div>
+                    <div class="bg-gray-800 bg-opacity-50 p-2 rounded tooltip">
+                        <div class="text-xs text-gray-400">Độ lệch tâm</div>
+                        <div id="planet-eccentricity" class="font-medium">0.0167</div>
+                        <span class="tooltiptext">Mức độ elip của quỹ đạo (0 = tròn hoàn hảo)</span>
+                    </div>
+                    <div class="bg-gray-800 bg-opacity-50 p-2 rounded tooltip">
+                        <div class="text-xs text-gray-400">Độ nghiêng quỹ đạo</div>
+                        <div id="planet-inclination" class="font-medium">7.155°</div>
+                        <span class="tooltiptext">Góc nghiêng so với mặt phẳng hoàng đạo</span>
+                    </div>
+                </div>
+                <div class="bg-indigo-900 bg-opacity-30 p-3 rounded border border-indigo-800">
+                    <h3 class="text-sm font-medium mb-1 text-indigo-300">Định luật Kepler</h3>
+                    <p class="text-xs text-gray-300 mb-2">Các hành tinh chuyển động theo quỹ đạo elip với Mặt Trời ở một tiêu điểm.</p>
+                    <div class="text-xs text-gray-400">Tốc độ quỹ đạo hiện tại:</div>
+                    <div id="planet-orbital-speed" class="text-sm font-medium">29.78 km/s</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Challenges Panel -->
+        <div id="challenges-panel" class="pointer-events-auto absolute top-20 right-4 w-80 planet-info p-5 hidden">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-xl font-bold">Thử thách</h2>
+                <button id="close-challenges" class="text-gray-400 hover:text-white">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" />
+                    </svg>
+                </button>
+            </div>
+            
+            <div class="space-y-3">
+                <div class="challenge-card p-3">
+                    <h3 class="text-sm font-medium mb-2 text-blue-300">Thử thách 1: Tìm hiểu các hành tinh</h3>
+                    <p class="text-xs text-gray-300 mb-2">Xác định hành tinh nào có chu kỳ quay quanh Mặt Trời dài nhất?</p>
+                    <div class="flex justify-between">
+                        <button class="text-xs bg-blue-600 hover:bg-blue-700 text-white px-2 py-1 rounded">Kiểm tra</button>
+                        <button class="text-xs bg-gray-700 hover:bg-gray-600 text-white px-2 py-1 rounded">Gợi ý</button>
+                    </div>
+                </div>
+                
+                <div class="challenge-card p-3">
+                    <h3 class="text-sm font-medium mb-2 text-green-300">Thử thách 2: Trọng lực</h3>
+                    <p class="text-xs text-gray-300 mb-2">Nếu bạn nặng 60kg trên Trái Đất, bạn sẽ nặng bao nhiêu trên Sao Mộc?</p>
+                    <div class="flex justify-between">
+                        <button class="text-xs bg-green-600 hover:bg-green-700 text-white px-2 py-1 rounded">Kiểm tra</button>
+                        <button class="text-xs bg-gray-700 hover:bg-gray-600 text-white px-2 py-1 rounded">Gợi ý</button>
+                    </div>
+                </div>
+                
+                <div class="challenge-card p-3">
+                    <h3 class="text-sm font-medium mb-2 text-purple-300">Thử thách 3: Khoảng cách</h3>
+                    <p class="text-xs text-gray-300 mb-2">Tính thời gian ánh sáng đi từ Mặt Trời đến Sao Hỏa.</p>
+                    <div class="flex justify-between">
+                        <button class="text-xs bg-purple-600 hover:bg-purple-700 text-white px-2 py-1 rounded">Kiểm tra</button>
+                        <button class="text-xs bg-gray-700 hover:bg-gray-600 text-white px-2 py-1 rounded">Gợi ý</button>
+                    </div>
+                </div>
+                
+                <div class="challenge-card p-3">
+                    <h3 class="text-sm font-medium mb-2 text-yellow-300">Thử thách 4: Quỹ đạo</h3>
+                    <p class="text-xs text-gray-300 mb-2">Hành tinh nào có độ lệch tâm quỹ đạo lớn nhất trong hệ Mặt Trời?</p>
+                    <div class="flex justify-between">
+                        <button class="text-xs bg-yellow-600 hover:bg-yellow-700 text-white px-2 py-1 rounded">Kiểm tra</button>
+                        <button class="text-xs bg-gray-700 hover:bg-gray-600 text-white px-2 py-1 rounded">Gợi ý</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+      
+
+    <script>
+        // Dữ liệu hành tinh
+        const planetData = {
+            sun: {
+                name: "Mặt Trời",
+                diameter: 1392700, // km
+                mass: 1.989e30, // kg
+                gravity: 274, // m/s²
+                color: 0xffcc00,
+                emissive: 0xff5500,
+                description: "Mặt Trời là ngôi sao ở trung tâm Hệ Mặt Trời, chiếm khoảng 99.86% khối lượng của toàn bộ hệ. Nó cung cấp năng lượng cho tất cả các hành tinh thông qua phản ứng nhiệt hạch.",
+                temperature: "5,500°C (bề mặt)",
+                day: "25-35 ngày",
+                distance: 0,
+                year: null,
+                eccentricity: null,
+                inclination: null,
+                orbitalSpeed: null,
+                escape: 617.7, // km/s
+                fact: "Mỗi giây, Mặt Trời chuyển đổi khoảng 600 triệu tấn hydro thành heli, giải phóng năng lượng khổng lồ."
+            },
+            mercury: {
+                name: "Sao Thủy",
+                diameter: 4879, // km
+                mass: 3.3011e23, // kg
+                gravity: 3.7, // m/s²
+                color: 0xa8a8a8,
+                description: "Sao Thủy là hành tinh nhỏ nhất và gần Mặt Trời nhất trong Hệ Mặt Trời. Nó có bề mặt đầy miệng núi lửa và không có khí quyển đáng kể.",
+                temperature: "430°C (ban ngày), -180°C (ban đêm)",
+                day: "58.6 ngày Trái Đất",
+                distance: 57.9e6, // km
+                year: "88 ngày",
+                eccentricity: 0.2056,
+                inclination: 7.0,
+                orbitalSpeed: 47.36, // km/s
+                escape: 4.3, // km/s
+                fact: "Mặc dù là hành tinh gần Mặt Trời nhất, Sao Thủy không phải là hành tinh nóng nhất trong Hệ Mặt Trời (Sao Kim nóng hơn do hiệu ứng nhà kính)."
+            },
+            venus: {
+                name: "Sao Kim",
+                diameter: 12104, // km
+                mass: 4.8675e24, // kg
+                gravity: 8.87, // m/s²
+                color: 0xe6e6ba,
+                description: "Sao Kim là hành tinh thứ hai tính từ Mặt Trời và là hành tinh nóng nhất trong Hệ Mặt Trời. Nó có khí quyển dày đặc chứa chủ yếu là CO2, tạo ra hiệu ứng nhà kính mạnh mẽ.",
+                temperature: "462°C (trung bình)",
+                day: "243 ngày Trái Đất",
+                distance: 108.2e6, // km
+                year: "225 ngày",
+                eccentricity: 0.0068,
+                inclination: 3.39,
+                orbitalSpeed: 35.02, // km/s
+                escape: 10.36, // km/s
+                fact: "Sao Kim quay ngược chiều so với hầu hết các hành tinh khác. Trên Sao Kim, Mặt Trời mọc ở phía tây và lặn ở phía đông."
+            },
+            earth: {
+                name: "Trái Đất",
+                diameter: 12742, // km
+                mass: 5.97237e24, // kg
+                gravity: 9.8, // m/s²
+                color: 0x2b82c9,
+                description: "Trái Đất là hành tinh thứ ba tính từ Mặt Trời, là hành tinh lớn nhất trong số các hành tinh đất đá trong Hệ Mặt Trời về cả khối lượng và đường kính. Trái Đất còn được gọi là \"Hành tinh xanh\" vì có sự hiện diện của nước và sự sống.",
+                temperature: "15°C (trung bình)",
+                day: "24 giờ",
+                distance: 149.6e6, // km
+                year: "365.25 ngày",
+                eccentricity: 0.0167,
+                inclination: 7.155,
+                orbitalSpeed: 29.78, // km/s
+                escape: 11.2, // km/s
+                fact: "Trái Đất là hành tinh duy nhất trong Hệ Mặt Trời được biết đến có sự sống và nước ở trạng thái lỏng trên bề mặt."
+            },
+            mars: {
+                name: "Sao Hỏa",
+                diameter: 6779, // km
+                mass: 6.4171e23, // kg
+                gravity: 3.71, // m/s²
+                color: 0xc1440e,
+                description: "Sao Hỏa là hành tinh thứ tư tính từ Mặt Trời và là hành tinh đất đá lớn thứ hai sau Trái Đất. Nó có bề mặt đỏ đặc trưng do sắt oxit (gỉ sắt) phủ khắp bề mặt.",
+                temperature: "-65°C (trung bình)",
+                day: "24.6 giờ",
+                distance: 227.9e6, // km
+                year: "687 ngày",
+                eccentricity: 0.0935,
+                inclination: 5.65,
+                orbitalSpeed: 24.07, // km/s
+                escape: 5.03, // km/s
+                fact: "Sao Hỏa có núi cao nhất trong Hệ Mặt Trời - Olympus Mons, cao gần 22km và rộng gấp 3 lần Everest."
+            },
+            jupiter: {
+                name: "Sao Mộc",
+                diameter: 139820, // km
+                mass: 1.8982e27, // kg
+                gravity: 24.79, // m/s²
+                color: 0xd8ca9d,
+                description: "Sao Mộc là hành tinh lớn nhất trong Hệ Mặt Trời, là hành tinh khí khổng lồ với khí quyển chủ yếu gồm hydro và heli. Nó nổi tiếng với Vết Đỏ Lớn - một cơn bão khổng lồ tồn tại hàng trăm năm.",
+                temperature: "-145°C (tầng mây)",
+                day: "9.93 giờ",
+                distance: 778.5e6, // km
+                year: "11.86 năm",
+                eccentricity: 0.0489,
+                inclination: 6.09,
+                orbitalSpeed: 13.07, // km/s
+                escape: 59.5, // km/s
+                fact: "Sao Mộc có ít nhất 79 vệ tinh đã được phát hiện. Khối lượng của nó lớn hơn tổng khối lượng của tất cả các hành tinh khác trong Hệ Mặt Trời cộng lại."
+            },
+            saturn: {
+                name: "Sao Thổ",
+                diameter: 116460, // km
+                mass: 5.6834e26, // kg
+                gravity: 10.44, // m/s²
+                color: 0xead6b8,
+                description: "Sao Thổ là hành tinh lớn thứ hai trong Hệ Mặt Trời, nổi tiếng với hệ thống vành đai đẹp mắt bao quanh. Các vành đai chủ yếu gồm các mảnh băng và đá.",
+                temperature: "-178°C (tầng mây)",
+                day: "10.7 giờ",
+                distance: 1.434e9, // km
+                year: "29.46 năm",
+                eccentricity: 0.0565,
+                inclination: 5.51,
+                orbitalSpeed: 9.68, // km/s
+                escape: 35.5, // km/s
+                fact: "Sao Thổ có mật độ thấp đến mức nếu đặt vào một đại dương đủ lớn, nó sẽ nổi trên mặt nước."
+            },
+            uranus: {
+                name: "Sao Thiên Vương",
+                diameter: 50724, // km
+                mass: 8.6810e25, // kg
+                gravity: 8.69, // m/s²
+                color: 0x9db4ff,
+                description: "Sao Thiên Vương là hành tinh thứ bảy tính từ Mặt Trời, là hành tinh khí khổng lồ với màu xanh lam đặc trưng do khí metan trong khí quyển. Nó có trục quay nghiêng đặc biệt, gần như nằm ngang so với mặt phẳng quỹ đạo.",
+                temperature: "-224°C (tầng mây)",
+                day: "17.24 giờ",
+                distance: 2.871e9, // km
+                year: "84.02 năm",
+                eccentricity: 0.0457,
+                inclination: 6.48,
+                orbitalSpeed: 6.80, // km/s
+                escape: 21.3, // km/s
+                fact: "Sao Thiên Vương quay với trục nghiêng 98 độ, gần như \"nằm ngang\" so với mặt phẳng quỹ đạo, có thể do một vụ va chạm khổng lồ trong quá khứ."
+            },
+            neptune: {
+                name: "Sao Hải Vương",
+                diameter: 49244, // km
+                mass: 1.02413e26, // kg
+                gravity: 11.15, // m/s²
+                color: 0x3e66f9,
+                description: "Sao Hải Vương là hành tinh thứ tám và xa nhất từ Mặt Trời trong Hệ Mặt Trời. Nó là hành tinh khí khổng lồ với màu xanh đậm do khí metan trong khí quyển. Nó có những cơn gió mạnh nhất trong Hệ Mặt Trời.",
+                temperature: "-218°C (tầng mây)",
+                day: "16.11 giờ",
+                distance: 4.495e9, // km
+                year: "164.8 năm",
+                eccentricity: 0.0113,
+                inclination: 6.43,
+                orbitalSpeed: 5.43, // km/s
+                escape: 23.5, // km/s
+                fact: "Sao Hải Vương có những cơn gió mạnh nhất trong Hệ Mặt Trời, với tốc độ lên đến 2,100 km/h."
+            }
+        };
+
+        // Khởi tạo Three.js
+        let scene, camera, renderer, controls;
+        let sun, planets = {}, orbits = {}, planetLabels = {};
+        let clock = new THREE.Clock();
+        let simulationSpeed = 1;
+        let sizeScale = 5;
+        let distanceScale = 0.3;
+        let showOrbits = true;
+        let showLabels = true;
+        let currentPlanet = 'earth';
+        let measurementLine;
+        let selectedPlanets = ['earth', 'mars'];
+        
+        function init() {
+            // Tạo scene
+            scene = new THREE.Scene();
+            
+            // Tạo camera
+            camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 10000);
+            camera.position.set(0, 100, 300);
+            
+            // Tạo renderer
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(window.devicePixelRatio);
+            document.getElementById('canvas-container').appendChild(renderer.domElement);
+            
+            // Thêm ánh sáng
+            const ambientLight = new THREE.AmbientLight(0x333333);
+            scene.add(ambientLight);
+            
+            // Tạo controls
+            controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.05;
+            
+            // Tạo background
+            createStarBackground();
+            
+            // Tạo hệ mặt trời
+            createSolarSystem();
+            
+            // Tạo đường đo khoảng cách
+            createMeasurementLine();
+            
+            // Xử lý sự kiện resize
+            window.addEventListener('resize', onWindowResize);
+            
+            // Bắt đầu animation loop
+            animate();
+            
+            // Cập nhật thông tin hành tinh ban đầu
+            updatePlanetInfo('earth');
+        }
+        
+        function createStarBackground() {
+            // Tạo các ngôi sao nền
+            const starsGeometry = new THREE.BufferGeometry();
+            const starsMaterial = new THREE.PointsMaterial({
+                color: 0xffffff,
+                size: 1,
+                sizeAttenuation: false
+            });
+            
+            const starsVertices = [];
+            for (let i = 0; i < 10000; i++) {
+                const x = (Math.random() - 0.5) * 2000;
+                const y = (Math.random() - 0.5) * 2000;
+                const z = (Math.random() - 0.5) * 2000;
+                starsVertices.push(x, y, z);
+            }
+            
+            starsGeometry.setAttribute('position', new THREE.Float32BufferAttribute(starsVertices, 3));
+            const stars = new THREE.Points(starsGeometry, starsMaterial);
+            scene.add(stars);
+        }
+        
+        function createSolarSystem() {
+            // Tạo Mặt Trời
+            const sunGeometry = new THREE.SphereGeometry(10 * sizeScale, 32, 32);
+            const sunMaterial = new THREE.MeshBasicMaterial({
+                color: planetData.sun.color,
+                emissive: planetData.sun.emissive,
+                emissiveIntensity: 0.5
+            });
+            sun = new THREE.Mesh(sunGeometry, sunMaterial);
+            scene.add(sun);
+            
+            // Thêm hiệu ứng ánh sáng cho Mặt Trời
+            const sunLight = new THREE.PointLight(0xffffff, 1.5, 1000);
+            sun.add(sunLight);
+            
+            // Tạo các hành tinh
+            createPlanet('mercury', 0.38, 0.4 * distanceScale);
+            createPlanet('venus', 0.95, 0.7 * distanceScale);
+            createPlanet('earth', 1, 1 * distanceScale);
+            createPlanet('mars', 0.53, 1.5 * distanceScale);
+            createPlanet('jupiter', 11.2, 5.2 * distanceScale);
+            createPlanet('saturn', 9.45, 9.5 * distanceScale);
+            createPlanet('uranus', 4, 19.2 * distanceScale);
+            createPlanet('neptune', 3.88, 30 * distanceScale);
+            
+            // Tạo vành đai Sao Thổ
+            createSaturnRings();
+        }
+        
+        function createPlanet(name, sizeRatio, distanceRatio) {
+            // Tạo hành tinh
+            const radius = sizeRatio * sizeScale;
+            const geometry = new THREE.SphereGeometry(radius, 32, 16);
+            const material = new THREE.MeshLambertMaterial({ color: planetData[name].color });
+            const planet = new THREE.Mesh(geometry, material);
+            
+            // Đặt vị trí ban đầu
+            const distance = distanceRatio * 100;
+            planet.position.x = distance;
+            
+            // Lưu thông tin quỹ đạo
+            planet.userData = {
+                distance: distance,
+                speed: 1 / Math.sqrt(distanceRatio),
+                angle: Math.random() * Math.PI * 2
+            };
+            
+            scene.add(planet);
+            planets[name] = planet;
+            
+            // Tạo quỹ đạo
+            const orbitGeometry = new THREE.BufferGeometry();
+            const orbitMaterial = new THREE.LineBasicMaterial({ color: 0x444444 });
+            
+            const orbitPoints = [];
+            const segments = 128;
+            for (let i = 0; i <= segments; i++) {
+                const angle = (i / segments) * Math.PI * 2;
+                orbitPoints.push(
+                    Math.cos(angle) * distance,
+                    0,
+                    Math.sin(angle) * distance
+                );
+            }
+            
+            orbitGeometry.setAttribute('position', new THREE.Float32BufferAttribute(orbitPoints, 3));
+            const orbit = new THREE.Line(orbitGeometry, orbitMaterial);
+            scene.add(orbit);
+            orbits[name] = orbit;
+            
+            // Tạo nhãn
+            createPlanetLabel(name, planet);
+        }
+        
+        function createSaturnRings() {
+            const innerRadius = planets['saturn'].geometry.parameters.radius * 1.2;
+            const outerRadius = planets['saturn'].geometry.parameters.radius * 2;
+            
+            const ringsGeometry = new THREE.RingGeometry(innerRadius, outerRadius, 64);
+            const ringsMaterial = new THREE.MeshBasicMaterial({
+                color: 0xf0e2c9,
+                side: THREE.DoubleSide,
+                transparent: true,
+                opacity: 0.8
+            });
+            
+            const rings = new THREE.Mesh(ringsGeometry, ringsMaterial);
+            rings.rotation.x = Math.PI / 2;
+            planets['saturn'].add(rings);
+        }
+        
+        function createPlanetLabel(name, planet) {
+            // Tạo canvas cho nhãn
+            const canvas = document.createElement('canvas');
+            const context = canvas.getContext('2d');
+            canvas.width = 256;
+            canvas.height = 128;
+            
+            // Vẽ text
+            context.fillStyle = 'rgba(0, 0, 0, 0)';
+            context.fillRect(0, 0, canvas.width, canvas.height);
+            context.font = 'Bold 24px Arial';
+            context.fillStyle = 'white';
+            context.textAlign = 'center';
+            context.fillText(planetData[name].name, canvas.width / 2, canvas.height / 2);
+            
+            // Tạo texture từ canvas
+            const texture = new THREE.CanvasTexture(canvas);
+            
+            // Tạo sprite
+            const spriteMaterial = new THREE.SpriteMaterial({ map: texture });
+            const sprite = new THREE.Sprite(spriteMaterial);
+            
+            // Đặt kích thước và vị trí
+            const scale = planet.geometry.parameters.radius * 2;
+            sprite.scale.set(scale * 2, scale, 1);
+            sprite.position.y = planet.geometry.parameters.radius * 1.5;
+            
+            planet.add(sprite);
+            planetLabels[name] = sprite;
+            
+            // Ẩn nhãn ban đầu nếu không hiển thị
+            sprite.visible = showLabels;
+        }
+        
+        function createMeasurementLine() {
+            // Tạo đường đo khoảng cách
+            const lineMaterial = new THREE.LineBasicMaterial({
+                color: 0xffff00,
+                linewidth: 2,
+                transparent: true,
+                opacity: 0.7
+            });
+            
+            const lineGeometry = new THREE.BufferGeometry();
+            const linePositions = new Float32Array(6); // 2 điểm, mỗi điểm 3 tọa độ
+            
+            lineGeometry.setAttribute('position', new THREE.BufferAttribute(linePositions, 3));
+            
+            measurementLine = new THREE.Line(lineGeometry, lineMaterial);
+            measurementLine.visible = false;
+            scene.add(measurementLine);
+        }
+        
+        function updateMeasurementLine() {
+            if (!measurementLine) return;
+            
+            const planet1 = planets[selectedPlanets[0]];
+            const planet2 = planets[selectedPlanets[1]];
+            
+            if (!planet1 || !planet2) return;
+            
+            const positions = measurementLine.geometry.attributes.position.array;
+            
+            positions[0] = planet1.position.x;
+            positions[1] = planet1.position.y;
+            positions[2] = planet1.position.z;
+            
+            positions[3] = planet2.position.x;
+            positions[4] = planet2.position.y;
+            positions[5] = planet2.position.z;
+            
+            measurementLine.geometry.attributes.position.needsUpdate = true;
+            
+            // Cập nhật thông tin khoảng cách
+            updateDistanceMeasurement();
+        }
+        
+        function updateDistanceMeasurement() {
+            const planet1 = planets[selectedPlanets[0]];
+            const planet2 = planets[selectedPlanets[1]];
+            
+            if (!planet1 || !planet2) return;
+            
+            // Tính khoảng cách
+            const distance = planet1.position.distanceTo(planet2.position);
+            
+            // Chuyển đổi sang khoảng cách thực tế (km)
+            const realDistance = distance * (149.6e6 / 100); // 100 đơn vị = 1 AU = 149.6 triệu km
+            
+            // Hiển thị khoảng cách
+            let distanceText;
+            if (realDistance >= 1e9) {
+                distanceText = (realDistance / 1e9).toFixed(2) + " tỷ km";
+            } else if (realDistance >= 1e6) {
+                distanceText = (realDistance / 1e6).toFixed(2) + " triệu km";
+            } else {
+                distanceText = realDistance.toFixed(0) + " km";
+            }
+            
+            document.getElementById('distance-value').textContent = distanceText;
+            
+            // Tính thời gian ánh sáng di chuyển
+            const lightSpeed = 299792.458; // km/s
+            const lightTimeSeconds = realDistance / lightSpeed;
+            
+            let lightTimeText;
+            if (lightTimeSeconds >= 3600) {
+                lightTimeText = (lightTimeSeconds / 3600).toFixed(2) + " giờ";
+            } else if (lightTimeSeconds >= 60) {
+                lightTimeText = (lightTimeSeconds / 60).toFixed(2) + " phút";
+            } else {
+                lightTimeText = lightTimeSeconds.toFixed(2) + " giây";
+            }
+            
+            document.getElementById('light-time').textContent = lightTimeText;
+        }
+        
+        function animate() {
+            requestAnimationFrame(animate);
+            
+            const delta = clock.getDelta();
+            
+            // Cập nhật vị trí các hành tinh
+            updatePlanets(delta);
+            
+            // Cập nhật đường đo khoảng cách
+            if (measurementLine && measurementLine.visible) {
+                updateMeasurementLine();
+            }
+            
+            // Cập nhật controls
+            controls.update();
+            
+            // Render scene
+            renderer.render(scene, camera);
+        }
+        
+        function updatePlanets(delta) {
+            // Quay Mặt Trời
+            sun.rotation.y += 0.005 * simulationSpeed * delta;
+            
+            // Cập nhật vị trí các hành tinh
+            for (const name in planets) {
+                const planet = planets[name];
+                const userData = planet.userData;
+                
+                // Cập nhật góc
+                userData.angle += userData.speed * 0.005 * simulationSpeed * delta;
+                
+                // Cập nhật vị trí
+                planet.position.x = Math.cos(userData.angle) * userData.distance;
+                planet.position.z = Math.sin(userData.angle) * userData.distance;
+                
+                // Quay hành tinh
+                planet.rotation.y += 0.01 * simulationSpeed * delta;
+            }
+        }
+        
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+        
+        function updatePlanetInfo(planetName) {
+            const planet = planetData[planetName];
+            
+            // Cập nhật tên hành tinh
+            document.getElementById('planet-name').textContent = planet.name;
+            
+            // Tab cơ bản
+            document.getElementById('planet-diameter').textContent = formatNumber(planet.diameter) + ' km';
+            document.getElementById('planet-size-ratio').textContent = (planet.diameter / planetData.earth.diameter).toFixed(2) + 'x';
+            document.getElementById('planet-temp').textContent = planet.temperature;
+            document.getElementById('planet-day').textContent = planet.day;
+            document.getElementById('planet-description').textContent = planet.description;
+            
+            // Tab vật lý
+            document.getElementById('planet-mass').textContent = formatScientific(planet.mass) + ' kg';
+            document.getElementById('planet-mass-ratio').textContent = (planet.mass / planetData.earth.mass).toFixed(2) + 'x';
+            document.getElementById('planet-gravity').textContent = planet.gravity + ' m/s²';
+            document.getElementById('planet-escape').textContent = planet.escape + ' km/s';
+            document.getElementById('planet-fact').textContent = planet.fact;
+            
+            // Tab quỹ đạo
+            if (planetName !== 'sun') {
+                document.getElementById('planet-distance').textContent = formatNumber(planet.distance) + ' km';
+                document.getElementById('planet-year').textContent = planet.year;
+                document.getElementById('planet-eccentricity').textContent = planet.eccentricity;
+                document.getElementById('planet-inclination').textContent = planet.inclination + '°';
+                document.getElementById('planet-orbital-speed').textContent = planet.orbitalSpeed + ' km/s';
+            }
+            
+            // Hiển thị panel
+            document.getElementById('planet-info').classList.remove('hidden');
+        }
+        
+        function formatNumber(num) {
+            if (num >= 1e9) {
+                return (num / 1e9).toFixed(2) + ' tỷ';
+            } else if (num >= 1e6) {
+                return (num / 1e6).toFixed(1) + ' triệu';
+            } else if (num >= 1e3) {
+                return (num / 1e3).toFixed(1) + ' nghìn';
+            } else {
+                return num.toString();
+            }
+        }
+        
+        function formatScientific(num) {
+            const exponent = Math.floor(Math.log10(num));
+            const mantissa = num / Math.pow(10, exponent);
+            return mantissa.toFixed(2) + ' × 10^' + exponent;
+        }
+        
+        // Xử lý sự kiện UI
+        document.addEventListener('DOMContentLoaded', function() {
+            init();
+            
+            // Nút đặt lại góc nhìn
+            document.getElementById('reset-view').addEventListener('click', function() {
+                camera.position.set(0, 100, 300);
+                controls.target.set(0, 0, 0);
+            });
+            
+            // Nút hiển thị/ẩn thông tin
+            document.getElementById('toggle-info').addEventListener('click', function() {
+                const infoPanel = document.getElementById('planet-info');
+                infoPanel.classList.toggle('hidden');
+            });
+            
+            // Nút đóng thông tin
+            document.getElementById('close-info').addEventListener('click', function() {
+                document.getElementById('planet-info').classList.add('hidden');
+            });
+            
+            // Nút hiển thị/ẩn thử thách
+            document.getElementById('toggle-challenges').addEventListener('click', function() {
+                const challengesPanel = document.getElementById('challenges-panel');
+                challengesPanel.classList.toggle('hidden');
+            });
+            
+            // Nút đóng thử thách
+            document.getElementById('close-challenges').addEventListener('click', function() {
+                document.getElementById('challenges-panel').classList.add('hidden');
+            });
+            
+            // Nút chọn hành tinh
+            document.querySelectorAll('.planet-btn').forEach(button => {
+                button.addEventListener('click', function() {
+                    const planetName = this.getAttribute('data-planet');
+                    
+                    // Cập nhật UI
+                    document.querySelectorAll('.planet-btn').forEach(btn => {
+                        btn.classList.remove('active');
+                    });
+                    this.classList.add('active');
+                    
+                    // Cập nhật hành tinh hiện tại
+                    currentPlanet = planetName;
+                    
+                    // Cập nhật thông tin hành tinh
+                    updatePlanetInfo(planetName);
+                    
+                    // Di chuyển camera đến hành tinh
+                    const planet = planets[planetName];
+                    if (planet) {
+                        const distance = planet.geometry.parameters.radius * 5;
+                        const position = new THREE.Vector3().copy(planet.position);
+                        position.y += distance / 2;
+                        
+                        // Animation di chuyển camera
+                        const startPosition = camera.position.clone();
+                        const endPosition = new THREE.Vector3(
+                            position.x + distance * 2,
+                            position.y + distance,
+                            position.z + distance * 2
+                        );
+                        
+                        const startTarget = controls.target.clone();
+                        const endTarget = position.clone();
+                        
+                        const duration = 1000; // ms
+                        const startTime = Date.now();
+                        
+                        function animateCamera() {
+                            const elapsed = Date.now() - startTime;
+                            const progress = Math.min(elapsed / duration, 1);
+                            
+                            // Easing function
+                            const easeProgress = 1 - Math.pow(1 - progress, 3);
+                            
+                            // Interpolate position and target
+                            camera.position.lerpVectors(startPosition, endPosition, easeProgress);
+                            controls.target.lerpVectors(startTarget, endTarget, easeProgress);
+                            
+                            if (progress < 1) {
+                                requestAnimationFrame(animateCamera);
+                            }
+                        }
+                        
+                        animateCamera();
+                    }
+                });
+            });
+            
+            // Tabs thông tin hành tinh
+            document.querySelectorAll('.tab-btn').forEach(button => {
+                button.addEventListener('click', function() {
+                    const tabName = this.getAttribute('data-tab');
+                    
+                    // Cập nhật UI
+                    document.querySelectorAll('.tab-btn').forEach(btn => {
+                        btn.classList.remove('active');
+                    });
+                    this.classList.add('active');
+                    
+                    // Hiển thị tab tương ứng
+                    document.querySelectorAll('.tab-content').forEach(tab => {
+                        tab.classList.add('hidden');
+                    });
+                    document.getElementById(tabName + '-tab').classList.remove('hidden');
+                });
+            });
+            
+            // Slider tốc độ mô phỏng
+            document.getElementById('simulation-speed').addEventListener('input', function() {
+                simulationSpeed = parseFloat(this.value);
+            });
+            
+            // Slider tỷ lệ kích thước
+            document.getElementById('size-scale').addEventListener('input', function() {
+                const newSizeScale = parseFloat(this.value);
+                
+                // Cập nhật kích thước các hành tinh
+                sun.scale.set(newSizeScale / sizeScale, newSizeScale / sizeScale, newSizeScale / sizeScale);
+                
+                for (const name in planets) {
+                    const planet = planets[name];
+                    planet.scale.set(newSizeScale / sizeScale, newSizeScale / sizeScale, newSizeScale / sizeScale);
+                }
+                
+                sizeScale = newSizeScale;
+            });
+            
+            // Slider tỷ lệ khoảng cách
+            document.getElementById('distance-scale').addEventListener('input', function() {
+                const newDistanceScale = parseFloat(this.value);
+                const ratio = newDistanceScale / distanceScale;
+                
+                // Cập nhật khoảng cách các hành tinh
+                for (const name in planets) {
+                    const planet = planets[name];
+                    const userData = planet.userData;
+                    
+                    userData.distance *= ratio;
+                    
+                    // Cập nhật quỹ đạo
+                    scene.remove(orbits[name]);
+                    
+                    const orbitGeometry = new THREE.BufferGeometry();
+                    const orbitMaterial = new THREE.LineBasicMaterial({ color: 0x444444 });
+                    
+                    const orbitPoints = [];
+                    const segments = 128;
+                    for (let i = 0; i <= segments; i++) {
+                        const angle = (i / segments) * Math.PI * 2;
+                        orbitPoints.push(
+                            Math.cos(angle) * userData.distance,
+                            0,
+                            Math.sin(angle) * userData.distance
+                        );
+                    }
+                    
+                    orbitGeometry.setAttribute('position', new THREE.Float32BufferAttribute(orbitPoints, 3));
+                    const orbit = new THREE.Line(orbitGeometry, orbitMaterial);
+                    scene.add(orbit);
+                    orbits[name] = orbit;
+                    orbit.visible = showOrbits;
+                }
+                
+                distanceScale = newDistanceScale;
+            });
+            
+            // Nút hiển thị/ẩn quỹ đạo
+            document.getElementById('toggle-orbits').addEventListener('click', function() {
+                showOrbits = !showOrbits;
+                
+                for (const name in orbits) {
+                    orbits[name].visible = showOrbits;
+                }
+                
+                // Cập nhật UI
+                if (showOrbits) {
+                    this.classList.add('bg-blue-600');
+                    this.classList.remove('bg-gray-700');
+                } else {
+                    this.classList.remove('bg-blue-600');
+                    this.classList.add('bg-gray-700');
+                }
+            });
+            
+            // Nút hiển thị/ẩn nhãn
+            document.getElementById('toggle-labels').addEventListener('click', function() {
+                showLabels = !showLabels;
+                
+                for (const name in planetLabels) {
+                    planetLabels[name].visible = showLabels;
+                }
+                
+                // Cập nhật UI
+                if (showLabels) {
+                    this.classList.add('bg-blue-600');
+                    this.classList.remove('bg-gray-700');
+                } else {
+                    this.classList.remove('bg-blue-600');
+                    this.classList.add('bg-gray-700');
+                }
+            });
+            
+            // Chọn hành tinh để đo khoảng cách
+            document.getElementById('planet-select-1').addEventListener('change', function() {
+                selectedPlanets[0] = this.value;
+                updateMeasurementLine();
+            });
+            
+            document.getElementById('planet-select-2').addEventListener('change', function() {
+                selectedPlanets[1] = this.value;
+                updateMeasurementLine();
+            });
+            
+            // Nút đo khoảng cách
+            document.getElementById('measure-button').addEventListener('click', function() {
+                measurementLine.visible = !measurementLine.visible;
+                
+                // Cập nhật UI
+                if (measurementLine.visible) {
+                    this.textContent = "Ẩn đường đo";
+                    this.innerHTML = `
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" />
+                        </svg>
+                        Ẩn đường đo
+                    `;
+                } else {
+                    this.innerHTML = `
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd" />
+                        </svg>
+                        Đo khoảng cách
+                    `;
+                }
+                
+                updateMeasurementLine();
+            });
+        });
+    </script>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'93e0631d328c8524',t:'MTc0Njk1Mjk5MS4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>
